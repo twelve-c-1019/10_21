@@ -8,7 +8,7 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.topology import event
 from ryu.topology.api import get_link, get_switch
 
-class NetworkTopology(nx.DiGraphz):
+class NetworkTopology(nx.DiGraph):
     def __init__(self):
         super().__init__()
         self.plot_config = {
@@ -23,29 +23,30 @@ class NetworkTopology(nx.DiGraphz):
         plt.figure(1, figsize=(18, 14))
         plt.ion()
 
-    def find_paths(self, src, dst: int, visited: dict, current_path: list, paths: list):
-        if src == dst:
+    def dfs_search(self, u: int, dst: int, visited: dict, current_path: list, paths: list):
+        if u == dst:
             paths.append(current_path.copy())
             return
-        for neighbor in self.neighbors(u):
-            if not visited[neighbor]:
-                visited[neighbor] = True
-                current_path.append(neighbor)
-                self.find_paths(neighbor, dst, visited, current_path, paths)
+        for v in self.neighbors(u):
+            if not visited[v]:
+                visited[v] = True
+                current_path.append(v)
+                self.dfs_search(v, dst, visited, current_path, paths)
                 current_path.pop()
-                visited[neighbor] = False
+                visited[v] = False
 
-    def find_longest_path(self, src, dst, first_port, last_port):
+    def find_paths(self, src: int, dst: int, first_port: int, last_port: int):
         visited = {s: False for s in self.nodes}
         visited[src] = True
         current_path = [src]
         all_paths = []
 
-        self.find_paths(src, dst, visited, current_path, all_paths)
+        self.dfs_search(src, dst, visited, current_path, all_paths)
 
         if not all_paths:
             return []
 
+        shortest_path = min(all_paths, key=len)
         longest_path = max(all_paths, key=len)
 
         path = longest_path if src != dst else [src]
@@ -73,11 +74,11 @@ class NetworkTopology(nx.DiGraphz):
         plt.pause(1)
 
 
-class LongestPath(app_manager.RyuApp):
+class PathController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
-        super(LongestPath, self).__init__(*args, **kwargs)
+        super(PathController, self).__init__(*args, **kwargs)
         self.switches = []
         self.host_connections = {}
         self.topology = NetworkTopology()
@@ -97,9 +98,9 @@ class LongestPath(app_manager.RyuApp):
         parser = dp.ofproto_parser
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(dp, 0, match, actions)
+        self.install_flow(dp, 0, match, actions)
 
-    def add_flow(self, dp, priority, match, actions, buffer_id=None):
+    def install_flow(self, dp, priority, match, actions, buffer_id=None):
         ofproto = dp.ofproto
         parser = dp.ofproto_parser
         instructions = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -119,7 +120,7 @@ class LongestPath(app_manager.RyuApp):
             parser = dp.ofproto_parser
             match = parser.OFPMatch(in_port=in_port, eth_src=src_mac, eth_dst=dst_mac)
             actions = [parser.OFPActionOutput(out_port)]
-            self.add_flow(dp, 1, match, actions)
+            self.install_flow(dp, 1, match, actions)
             path_str += "--{}-{}-{}".format(in_port, switch, out_port)
 
         path_str += "--" + dst_mac
@@ -151,7 +152,7 @@ class LongestPath(app_manager.RyuApp):
             src_switch, first_port = self.host_connections[src_mac]
             dst_switch, final_port = self.host_connections[dst_mac]
 
-            path = self.topology.find_longest_path(src_switch, dst_switch, first_port, final_port)
+            path = self.topology.find_paths(src_switch, dst_switch, first_port, final_port)
             if path:
                 self.apply_path(path, src_mac, dst_mac)
                 out_port = next((out for sw, _, out in path if sw == dpid), None)
