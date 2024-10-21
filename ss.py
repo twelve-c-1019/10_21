@@ -8,9 +8,20 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.topology import event
 from ryu.topology.api import get_link, get_switch
 
-class NetworkTopology():
+class NetworkTopology(nx.DiGraphz):
     def __init__(self):
         super().__init__()
+        self.plot_config = {
+            "font_size": 20,
+            "node_size": 1500,
+            "node_color": "white",
+            "linewidths": 3,
+            "width": 3,
+            "with_labels": True
+        }
+        self.pos = nx.spring_layout(self)
+        plt.figure(1, figsize=(18, 14))
+        plt.ion()
 
     def find_paths(self, src, dst: int, visited: dict, current_path: list, paths: list):
         if src == dst:
@@ -163,6 +174,7 @@ class LongestPath(app_manager.RyuApp):
             return
 
         self.topology.clear()
+        plt.clf()
 
         all_switches = get_switch(self)
         self.topology.add_nodes_from([s.dp.id for s in all_switches])
@@ -172,6 +184,11 @@ class LongestPath(app_manager.RyuApp):
         self.topology.add_edges_from([(l.src.dpid, l.dst.dpid, {"port": l.src.port_no}) for l in all_links])
         self.topology.add_edges_from([(l.dst.dpid, l.src.dpid, {"port": l.dst.port_no}) for l in all_links])
 
+        plt.title('Discovered Topology')
         self.topology.pos = nx.spring_layout(self.topology)
+        nx.draw(self.topology, pos=self.topology.pos, edgecolors="black", **self.topology.plot_config)
+        plt.show()
+        plt.savefig("network_topology.png")
+        plt.pause(1)
 
         self.discovery_limit -= 1
