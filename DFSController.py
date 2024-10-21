@@ -156,8 +156,6 @@ class DFSController(app_manager.RyuApp):
         if self.discovery_limit == 0:
             return
 
-        self.topo.clear()
-        
         # 保存交换机信息
         all_switches = get_switch(self)
         self.topo.add_nodes_from([s.dp.id for s in all_switches])
