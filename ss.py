@@ -192,4 +192,4 @@ class PathController(app_manager.RyuApp):
         plt.savefig("network_topology.png")
         plt.pause(1)
 
-        self.discovery_limit -= 1
+
