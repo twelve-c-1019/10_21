@@ -83,24 +83,15 @@ def myNetwork():
     info( '*** Starting switches\n')
     net.get('s6').start([c0])
     net.get('s1').start([c0])
-    net.get('s12').start([c0])
     net.get('s10').start([c0])
-    net.get('s13').start([c0])
     net.get('s2').start([c0])
-    net.get('s11').start([c0])
     net.get('s7').start([c0])
     net.get('s8').start([c0])
     net.get('s5').start([c0])
     net.get('s3').start([c0])
     net.get('s9').start([c0])
     net.get('s4').start([c0])
-    net.get('s14').start([c0])
-    net.get('s15').start([c0])
-    net.get('s16').start([c0])
-    net.get('s17').start([c0])
-    net.get('s18').start([c0])
-    net.get('s19').start([c0])
-    net.get('s20').start([c0])
+
     
     
 
