@@ -5,6 +5,7 @@ from ryu.lib.packet import arp, ether_types, ethernet, packet
 from ryu.ofproto import ofproto_v1_3
 from ryu.topology import event
 from ryu.topology.api import get_link, get_switch
+import networkx as nx
 
 class NetworkTopology():
     def __init__(self):
