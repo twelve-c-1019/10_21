@@ -5,9 +5,10 @@ from ryu.lib.packet import arp, ether_types, ethernet, packet
 from ryu.ofproto import ofproto_v1_3
 from ryu.topology import event
 from ryu.topology.api import get_link, get_switch
+
 import networkx as nx
 
-class NetworkTopology(nx.DiGraph):
+class NetworkTopology(nx.Graph):
     def __init__(self):
         super().__init__()
 
@@ -127,8 +128,8 @@ class DFSController(app_manager.RyuApp):
             self.host_mac_to[src_mac] = (dpid, in_port)
 
         if dst_mac in self.host_mac_to.keys():
-            src_switch, first_port = self.host_connections[src_mac]
-            dst_switch, final_port = self.host_connections[dst_mac]
+            src_switch, first_port = self.host_mac_to[src_mac]
+            dst_switch, final_port = self.host_mac_to[dst_mac]
 
             path = self.topo.find_paths(src_switch, dst_switch, first_port, final_port)
             if path:
@@ -149,11 +150,14 @@ class DFSController(app_manager.RyuApp):
 
     @set_ev_cls(event.EventSwitchEnter)
     def switch_enter_handler(self, event):
-
+        
+        # 获得所有的交换机 以及 路径 也就是 点和边
         all_switches = get_switch(self)
+        all_links = get_link(self)
+
         self.topo.add_nodes_from([s.dp.id for s in all_switches])
+
         self.switches = [s.dp for s in all_switches]
 
-        all_links = get_link(self)
         self.topo.add_edges_from([(l.src.dpid, l.dst.dpid, {"port": l.src.port_no}) for l in all_links])
         self.topo.add_edges_from([(l.dst.dpid, l.src.dpid, {"port": l.dst.port_no}) for l in all_links])
