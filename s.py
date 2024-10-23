@@ -7,7 +7,7 @@ from ryu.topology import event
 from ryu.topology.api import get_link, get_switch
 import networkx as nx
 
-class NetworkTopology():
+class NetworkTopology(nx.DiGraphz):
     def __init__(self):
         super().__init__()
 
